@@ -1,0 +1,178 @@
+// ...existing code...
+interface IEfecto {
+  nombre: string;
+  descripcion: string;
+  efecto: (personaje: Personaje) => void; // tipo concreto en lugar de Function
+  tiempo: number;
+  finEfecto?: (personaje: Personaje) => void;
+}
+
+class Efecto implements IEfecto {
+  nombre: string;
+  descripcion: string;
+  efecto: (personaje: Personaje) => void;
+  tiempo: number;
+  finEfecto?: (personaje: Personaje) => void;
+
+  constructor({ nombre, descripcion, efecto, tiempo, finEfecto }: IEfecto) {
+    this.nombre = nombre;
+    this.descripcion = descripcion;
+    this.efecto = efecto;
+    this.tiempo = tiempo;
+    this.finEfecto = finEfecto;
+  }
+
+  Activar(personaje: Personaje): void {
+    if (this.tiempo > 0) {
+      if (personaje.estaMuerto()) {
+        console.log(`${personaje.nombre} está muerto`);
+        return;
+      }
+
+      this.efecto(personaje); // ACTIVACION
+
+      // Si validarExcesos es un método estático de Personaje, llamarlo con la instancia
+      Personaje.validarExcesos();
+
+      console.log(`Efecto activado: ${this.nombre}, Tiempo restante: ${this.tiempo}`);
+      this.reducirEspera();
+    } else {
+      this.removerEfectos(personaje);
+    }
+  }
+
+  removerEfectos(personaje: Personaje): void {
+    if (!personaje) {
+      console.warn("El personaje no existe");
+      return;
+    }
+
+    // Ejecutar acción de limpieza si existe
+    if (typeof this.finEfecto === 'function') {
+      try { this.finEfecto(personaje); } catch (e) { console.warn('Error al ejecutar finEfecto', e); }
+    }
+
+    if (Array.isArray(personaje.debilitamiento)) {
+      personaje.debilitamiento = personaje.debilitamiento.filter(
+        (debil) => debil.nombre !== this.nombre
+      );
+    }
+
+    if (Array.isArray(personaje.fortalecimiento)) {
+      personaje.fortalecimiento = personaje.fortalecimiento.filter(
+        (fortaleza) => fortaleza.nombre !== this.nombre
+      );
+    }
+    console.log(`Efectos eliminados: ${this.nombre}`);
+  }
+
+  reducirEspera(): void {
+    this.tiempo = Math.max(0, this.tiempo - 1);
+  }
+}
+
+class EfectoContinuo extends Efecto {
+  constructor(args: IEfecto) {
+    super(args);
+  }
+}
+
+class EfectoFijo extends Efecto {
+  activo: boolean = false;
+
+  constructor(args: IEfecto) {
+    super(args);
+  }
+
+  Aplicar(personaje: Personaje): void {
+    if (this.tiempo > 0) {
+      this.efecto(personaje);
+      this.activo = true;
+      console.log(`Efecto fijo activado: ${this.nombre}`);
+      this.reducirEspera();
+    } else {
+      super.removerEfectos(personaje);
+    }
+  }
+
+  removerEfectos(personaje: Personaje): void {
+    if (this.activo) {
+      super.removerEfectos(personaje);
+      this.activo = false;
+      console.log(`Efecto fijo desactivado: ${this.nombre}`);
+    }
+  }
+}
+
+
+// class EfectoContinuo {
+//   //CLASE CREADORA DE LOS EFECTOS CONTINUOS
+//   constructor(nombre, descripcion, efecto, tiempo,eliminarEfecto) {
+//     //this.tipo ELIMINADO DE PRUEBA
+//     this.nombre = nombre;
+//     this.descripcion = descripcion;
+//     this.efecto = efecto;
+//     this.tiempo = tiempo;
+//     this.eliminarEfecto = eliminarEfecto;
+//   }
+
+//   Activar(personaje) {
+//     //ACTIVACION DE LA HABILIDAD
+//     if (this.tiempo === 0) {
+//       this.removerEfectos(personaje);
+//       console.log('efecto eliminado')
+//     }else{
+
+//       if (personaje.estaMuerto()) {
+//         console.log(`El personaje ${personaje.nombre} está muerto`);
+//         return false;
+//       }
+
+//       this.efecto(personaje); //SE ACTIVA EL EFECTO
+//       Personaje.validarExcesos(personaje); // se validan excesos después de accionarse la habilidad
+//       this.reducirEspera();
+
+//     }
+//   }
+
+//   removerEfectos(personaje) {
+//     if (!personaje) {
+//       console.warn('El personaje no existe');
+//       return;
+//     }
+
+//     if (Array.isArray(personaje.debilitamiento)) {
+//       personaje.debilitamiento = personaje.debilitamiento.filter(debil => debil.nombre !== this.nombre);
+
+//     }
+
+//     if (Array.isArray(personaje.fortalecimiento)) {
+//       personaje.fortalecimiento = personaje.fortalecimiento.filter((fortaleza) => fortaleza.nombre !== this.nombre);
+//     }
+//   }
+
+//   reducirEspera() {
+//     this.tiempo = Math.max(0, this.tiempo - 1); // Se asegura de no reducir por debajo de 0
+//   }
+// }
+
+// class EfectoFijo extends EfectoContinuo {
+//   constructor(nombre, descripcion, efecto, tiempo, tipo, eliminarEfecto) {
+//     super(nombre, descripcion, efecto, tiempo, tipo, eliminarEfecto);
+//     this.activo = false; // Inicialmente el efecto no está activo
+//   }
+
+//   Aplicar(personaje) {
+//     if (!this.activo) {
+//       this.efecto(personaje); // Aplica el efecto si no está activo
+//       this.activo = true; // Marca el efecto como activo
+//     }
+//   }
+
+//   desAplicar(personaje) {
+//     if (this.activo) {
+//       this.removerEfectos(personaje); // Elimina el efecto solo si estaba activo
+//       this.activo = false; // Marca el efecto como inactivo
+//     }
+//   }
+// }
